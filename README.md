@@ -13,8 +13,8 @@ Be careful not to exceed the ranges that the types support!
 
 ### Example with an integer type:
 ``` cpp
-RNG<i32> rng(-400, 400);
-i32 value = rng.gen_value();
+RNG<int> rng(-400, 400);
+int value = rng.gen_value();
 ```
 
 ### Example with bools:
