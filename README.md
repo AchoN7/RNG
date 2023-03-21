@@ -4,16 +4,21 @@
 Lightweight, gets the job done. When instantiating, just supply the type, and the range that you want a random number from.
 Be careful not to exceed the ranges that the types support!
 
-#### supports:
+### supports:
 * short/ushort
 * int/uint
 * long/ulong
 * float/double
 * AND bool!
 
-Example with an integer type:
-
+### Example with an integer type:
 ``` cpp
 RNG<i32> rng(-400, 400);
 i32 value = rng.gen_value();
+```
+
+### Example with bools:
+``` cpp
+RNG<bool> rng(false, true);
+bool value = rng.gen_value(); //returns 0 or 1
 ```
