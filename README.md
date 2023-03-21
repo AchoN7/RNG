@@ -13,7 +13,7 @@ AND bool!
 
 Example with an integer type:
 
-```
+``` cpp
 RNG<i32> rng(-400, 400);
 i32 value = rng.gen_value();
 ```
