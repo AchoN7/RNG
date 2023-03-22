@@ -10,6 +10,7 @@
 
 	It's a lightweight class, so you can use it on the stack.
 		Also compatible with smart pointers.
+		Also thread safe.
 	
 	**************
 	Example usage:
@@ -29,6 +30,7 @@
 */
 
 #include <random>
+#include <mutex>
 #include <type_traits>
 
 #include "Defines.hpp"
@@ -69,17 +71,22 @@ public:
 		lower_bound(from), upper_bound(to) {}
 
 	T gen_value() { 
+		lock_guard<mutex> lock(mtx);
 		return distribution(generator);
 	}
 
 	void change_bounds(T from, T to) {
+		lock_guard<mutex> lock(mtx);
 		lower_bound = from;
 		upper_bound = to;
 
 		distribution = make_distribution(from, to);
 	}
 
-	void reseed() { generator.seed(random_device()()); }
+	void reseed() { 
+		lock_guard<mutex> lock(mtx);
+		generator.seed(random_device()()); 
+	}
 
 	T get_lower_bound() const { return lower_bound; }
 	T get_upper_bound() const { return upper_bound; }
@@ -100,6 +107,8 @@ private:
 
 	T lower_bound;
 	T upper_bound;
+
+	mutex mtx;
 
 	Distribution make_distribution(T from, T to) {
 		if constexpr (is_same_v<T, bool>) {

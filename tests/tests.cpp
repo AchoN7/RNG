@@ -5,6 +5,9 @@
 #include "Defines.hpp"
 #include "RNGtoString.hpp"
 
+#include <thread>
+#include <vector>
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace tests {
@@ -89,6 +92,20 @@ namespace tests {
 
 			weak_ptr<RNG<i32>> weak = shared1;
 			Assert::IsFalse(weak.expired());
+		}
+
+		TEST_METHOD(Test_Concurrency_support) {
+			RNG<i32> rng(0, 100);
+
+			vector<jthread> threads;
+			for (i32 i = 0; i < 10; i++) {
+				threads.emplace_back([&rng]() {
+					for (i32 j = 0; j < 1000; j++) {
+						i32 val = rng.gen_value();
+						Assert::IsTrue(val >= 0 AND val <= 100);
+					}
+				});
+			}
 		}
 	
 	};
