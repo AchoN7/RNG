@@ -24,8 +24,8 @@ bool value = rng.gen_value(); //returns 0 or 1
 
 ### Example without providing bounds:
 ``` cpp
-RNG<char> rng(); //bounds are automatically -128 to 127
-char value = rng.gen_value(); //returns between -128 and 127 inclusive
+RNG<short> rng{}; //bounds are automatically -32768 to 32767
+short value = rng.gen_value(); //returns between -32768 and 32767 inclusive
 ```
 
 ### Compiled with MSVC and tested on VisualStudio 22 with CppUnitTests
