@@ -2,7 +2,6 @@
 #include "CppUnitTest.h"
 
 #include "RNG.hpp"
-#include "RNG_Thread_Local.hpp"
 #include "RNGtoString.hpp"
 
 #include <thread>
@@ -55,7 +54,7 @@ namespace performance {
 			int random_numbers = 10000;
 			auto start = std::chrono::high_resolution_clock::now();
 
-			RNG_Thread_Local<int> rng(0, 100);
+			RNG<int> rng(0, 100);
 
 			vector<thread> threads;
 			for (int i = 0; i < thread_count; i++) {

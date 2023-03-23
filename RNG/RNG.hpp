@@ -5,7 +5,7 @@
 	It works based on the Mersenne twister for efficiency.
 
 	The generator is templated, so that whatever range you pass
-		to the constructor, whatever the type (integral or decimal types),
+		to the constructor, whatever the type (integral or decimal types, but not char types),
 		it will automatically set it up for you.
 
 	It's a lightweight class, so you can use it on the stack.
@@ -26,7 +26,7 @@
 	********** Additional functionality:
 	If no bounds are provided, RNG<type> will automatically
 		set the bounds as the min/max values of the provided <type>!
-		RNG<char> rng; -- bound is set to (-128; +127)
+		RNG<short> rng{}; -- bound is set to (-32768; 32767)
 
 	rng.change_bounds(new_lower_bound, new_upper_bound);	-- sets a new bound for the distribution
 	rng.reseed();		-- sets a new seed for the generator to use
@@ -38,8 +38,8 @@
 
 	********** IMPORTANT!
 	If RNG<type> is instantiated with bounds values that exceed the <type>'s supported values
-		{e.g. RNG<char> rng(-1000, 1000), when char supports min:-128 and max:127}
-		then the bounds will automatically be clamped to facilitate the <char>'s min/max bounds!
+		{e.g. RNG<short> rng(-1'000'000, 1'000'000), when short supports min:-32768 and max:32767}
+		then the bounds will automatically be clamped to facilitate the <short>'s min/max bounds!
 
 */
 
@@ -87,13 +87,13 @@ public:
 		>
 	>;
 
-	RNG<T>() :
+	RNG() :
 		seed(std::random_device()()),
 		lower_bound(numeric_limits<T>::min()),
 		upper_bound(numeric_limits<T>::max()),
 		distribution(make_distribution(lower_bound, upper_bound)) {}
 
-	RNG<T>(T from, T to) :
+	RNG(T from, T to) :
 		seed(std::random_device()())
 	{
 		bounds_check(from, to);
@@ -116,12 +116,12 @@ public:
 		seed = std::random_device()();
 	}
 
-	inline T get_lower_bound() const {
+	inline T get_lower_bound() {
 		lock_guard<mutex> lock(mtx);
 		return lower_bound;
 	}
 
-	inline T get_upper_bound() const {
+	inline T get_upper_bound() {
 		lock_guard<mutex> lock(mtx);
 		return upper_bound;
 	}

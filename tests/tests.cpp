@@ -108,6 +108,14 @@ namespace tests {
 				});
 			}
 		}
-	
+
+		TEST_METHOD(Test_Default_Constructor) {
+			RNG<short> rng{};
+
+			for (int i = 0; i < 100; i++) {
+				char val = rng.gen_value();
+				Assert::IsTrue(val >= -32767 && val <= 32768);
+			}
+		}
 	};
 }
