@@ -4,48 +4,71 @@
 	A simple random number generator class with an easy to use interface.
 	It works based on the Mersenne twister for efficiency.
 
-	The generator is templated, so that whatever range you pass 
-		to the constructor, whatever the type (integer or decimal types),
+	The generator is templated, so that whatever range you pass
+		to the constructor, whatever the type (integral or decimal types),
 		it will automatically set it up for you.
 
 	It's a lightweight class, so you can use it on the stack.
 		Also compatible with smart pointers.
 		Also thread safe.
-	
-	**************
-	Example usage:
-	Random_Generator<i16> rng(-100, 100); --create a generator of i16 values
-	i16 new_value = rng.gen_value();      --returns an i16 value
+		Also parallel. (now 16x faster as per tests)
+		Also supports default bounds based on the supplied <type> through the constructor.
+
+	********** Example usage:
+	RNG<int> rng(-100, 100); --create a generator of int values
+	int new_value = rng.gen_value();      --returns an int value
 	It is as simple as that!
 
-	*************************
-	Additional functionality:
+	You can create an instance as above and send a reference to it
+		to as many threads as you like. Call rng.gen_value() within them,
+		the threads can get values in parallel, without locking each other out.
+
+	********** Additional functionality:
+	If no bounds are provided, RNG<type> will automatically
+		set the bounds as the min/max values of the provided <type>!
+		RNG<char> rng; -- bound is set to (-128; +127)
+
 	rng.change_bounds(new_lower_bound, new_upper_bound);	-- sets a new bound for the distribution
 	rng.reseed();		-- sets a new seed for the generator to use
 
-	**************************************
-	BONUS. It can even be used with bools!
-	Random_Generator<bool> rng(false, true); --only use false and true
+	********** BONUS!
+	It can even be used with bools!
+	RNG<bool> rng(false, true); --only use false and true
 	bool new_value = rng.gen_value(); -- returns either 1 or 0.
+
+	********** IMPORTANT!
+	If RNG<type> is instantiated with bounds values that exceed the <type>'s supported values
+		{e.g. RNG<char> rng(-1000, 1000), when char supports min:-128 and max:127}
+		then the bounds will automatically be clamped to facilitate the <char>'s min/max bounds!
+
 */
 
+#include <concepts>
 #include <random>
 #include <mutex>
 #include <type_traits>
+#include <limits>
+#include <algorithm>
 
-#include "Defines.hpp"
+using std::same_as;
+using std::is_same_v;
+using std::is_integral_v;
+using std::is_floating_point_v;
+using std::numeric_limits;
 
-template <typename T>
-concept basic_types = 
-use<T, i16 > OR
-use<T, u16 > OR 
-use<T, i32 > OR 
-use<T, u32 > OR
-use<T, i64 > OR 
-use<T, u64 > OR 
-use<T, f32 > OR
-use<T, f64 > OR 
-is_same_v<T, bool>;
+using std::uniform_real_distribution;
+using std::uniform_int_distribution;
+using std::bernoulli_distribution;
+
+using std::conditional_t;
+using std::mutex;
+using std::lock_guard;
+
+template<typename T>
+concept basic_types =
+is_integral_v<T> ||
+is_floating_point_v<T> ||
+same_as<T, bool>;
 
 template <basic_types T>
 class RNG {
@@ -64,32 +87,44 @@ public:
 		>
 	>;
 
-	RNG<T>(T from, T to) :
-		device(),
-		generator(device()),
-		distribution(make_distribution(from, to)),
-		lower_bound(from), upper_bound(to) {}
+	RNG<T>() :
+		seed(std::random_device()()),
+		lower_bound(numeric_limits<T>::min()),
+		upper_bound(numeric_limits<T>::max()),
+		distribution(make_distribution(lower_bound, upper_bound)) {}
 
-	T gen_value() { 
-		lock_guard<mutex> lock(mtx);
+	RNG<T>(T from, T to) :
+		seed(std::random_device()())
+	{
+		bounds_check(from, to);
+		distribution = make_distribution(lower_bound, upper_bound);
+	}
+
+	inline T gen_value() {
+		static thread_local std::mt19937 generator(seed);
 		return distribution(generator);
 	}
 
 	void change_bounds(T from, T to) {
 		lock_guard<mutex> lock(mtx);
-		lower_bound = from;
-		upper_bound = to;
-
-		distribution = make_distribution(from, to);
+		bounds_check(from, to);
+		distribution = make_distribution(lower_bound, upper_bound);
 	}
 
-	void reseed() { 
+	void reseed() {
 		lock_guard<mutex> lock(mtx);
-		generator.seed(random_device()()); 
+		seed = std::random_device()();
 	}
 
-	T get_lower_bound() const { return lower_bound; }
-	T get_upper_bound() const { return upper_bound; }
+	inline T get_lower_bound() const {
+		lock_guard<mutex> lock(mtx);
+		return lower_bound;
+	}
+
+	inline T get_upper_bound() const {
+		lock_guard<mutex> lock(mtx);
+		return upper_bound;
+	}
 
 	static void* operator new(size_t sz) {
 		return ::operator new(sz);
@@ -99,10 +134,14 @@ public:
 		::operator delete(ptr);
 	}
 
+	RNG(const RNG&) = delete;
+	RNG(RNG&&) = delete;
+	RNG& operator=(RNG&&) = delete;
+	RNG& operator=(const RNG&) = delete;
+
 private:
 
-	random_device device;
-	mt19937 generator;
+	unsigned int seed;
 	Distribution distribution;
 
 	T lower_bound;
@@ -117,5 +156,15 @@ private:
 		else {
 			return Distribution(from, to);
 		}
+	}
+
+	void bounds_check(T from, T to) {
+		//set the lower and upper values from the params in the appropriate order, just a precaution
+		lower_bound = std::min(from, to);
+		upper_bound = std::max(from, to);
+
+		//runtime clamp of bounds if the provided range exceeds the range of the <type>
+		lower_bound = std::clamp(lower_bound, numeric_limits<T>::min(), numeric_limits<T>::max());
+		upper_bound = std::clamp(upper_bound, numeric_limits<T>::min(), numeric_limits<T>::max());
 	}
 };
