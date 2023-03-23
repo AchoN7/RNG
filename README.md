@@ -22,3 +22,4 @@ int value = rng.gen_value();
 RNG<bool> rng(false, true);
 bool value = rng.gen_value(); //returns 0 or 1
 ```
+### Compiled with MSVC and tested on VisualStudio 22
