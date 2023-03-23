@@ -1,4 +1,4 @@
-# RNG
+# RNG (requires C++20)
 ### My own Random Number Generator template class with a simple interface that supports integer, decimal and bool types.
 
 Lightweight, gets the job done. When instantiating, just supply the type, and the range that you want a random number from.
@@ -22,3 +22,4 @@ int value = rng.gen_value();
 RNG<bool> rng(false, true);
 bool value = rng.gen_value(); //returns 0 or 1
 ```
+### Compiled with MSVC and tested on VisualStudio 22
